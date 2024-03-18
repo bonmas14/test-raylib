@@ -16,7 +16,6 @@
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
 #include "stdio.h"
 
-
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
 #endif
@@ -28,6 +27,7 @@
 GameScreen currentScreen = LOGO;
 Font font = { 0 };
 Music music = { 0 };
+Music gameplayMusic = { 0 };
 Sound fxCoin = { 0 };
 Sound hover = { 0 };
 
@@ -62,17 +62,20 @@ int main(void)
 {
     // Initialization
     //---------------------------------------------------------
-    InitWindow(screenWidth, screenHeight, "raylib game template");
+    InitWindow(screenWidth, screenHeight, "Test-game");
 
     InitAudioDevice();
 
     font = LoadFont("resources/mecha.png");
-    music = LoadMusicStream("resources/ambient.ogg");
+    music = LoadMusicStream("resources/background.ogg");
+    gameplayMusic = LoadMusicStream("resources/game.ogg");
     fxCoin = LoadSound("resources/coin.wav");
     hover = LoadSound("resources/hover.wav");
 
-    SetMusicVolume(music, .4f);
+    SetMusicVolume(music, 1.0f);
     PlayMusicStream(music);
+    SetMusicVolume(gameplayMusic, 0.0f);
+    PlayMusicStream(gameplayMusic);
 
     // Setup and init first screen
     currentScreen = LOGO;
@@ -106,7 +109,9 @@ int main(void)
     // Unload global data loaded
     UnloadFont(font);
     UnloadMusicStream(music);
+    UnloadMusicStream(gameplayMusic);
     UnloadSound(fxCoin);
+    UnloadSound(hover);
 
     CloseAudioDevice();     // Close audio context
 
@@ -159,7 +164,25 @@ static void UpdateTransition(void)
 {
     if (!transFadeOut)
     {
-        transAlpha += 0.05f;
+        transAlpha += 0.02f;
+
+        switch (transToScreen)
+        {
+        case GAMEPLAY:
+            SetMusicVolume(music, 1.0f - transAlpha);
+            SetMusicVolume(gameplayMusic, transAlpha);
+            break;
+        case LOGO:
+            break;
+        default:
+            if (transFromScreen == GAMEPLAY)
+            {
+				SetMusicVolume(music, transAlpha);
+				SetMusicVolume(gameplayMusic, 1.0f - transAlpha);
+            }
+            break;
+        }
+
 
         // NOTE: Due to float internal representation, condition jumps on 1.0f instead of 1.05f
         // For that reason we compare against 1.01f, to avoid last frame loading stop
@@ -177,6 +200,19 @@ static void UpdateTransition(void)
                 default: break;
             }
 
+			switch (transToScreen)
+			{
+			case GAMEPLAY:
+				SetMusicVolume(music, 0.0f);
+				SetMusicVolume(gameplayMusic, 1.0f);
+				break;
+			default:
+				SetMusicVolume(music, 1.0f);
+				SetMusicVolume(gameplayMusic, 0.0f);
+                StopMusicStream(gameplayMusic);
+				break;
+			}
+
             switch (transToScreen)
             {
                 case LOGO: InitLogoScreen(); break;
@@ -188,13 +224,12 @@ static void UpdateTransition(void)
 
             currentScreen = transToScreen;
 
-            // Activate fade out effect to next loaded screen
             transFadeOut = true;
         }
     }
     else
     {
-        transAlpha -= 0.04f;
+        transAlpha -= 0.02f;
 
         if (transAlpha < -0.01f)
         {
@@ -207,18 +242,17 @@ static void UpdateTransition(void)
     }
 }
 
-// Draw transition effect (full-screen rectangle)
 static void DrawTransition(void)
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, transAlpha));
 }
 
-// Update and draw game frame
 static void UpdateDrawFrame(void)
 {
     // Update
     //----------------------------------------------------------------------------------
     UpdateMusicStream(music);
+	UpdateMusicStream(gameplayMusic);
     
     if (!onTransition)
     {
@@ -236,21 +270,23 @@ static void UpdateDrawFrame(void)
                 UpdateTitleScreen();
 
                 if (FinishTitleScreen() == 1) TransitionToScreen(OPTIONS);
-                else if (FinishTitleScreen() == 2) TransitionToScreen(GAMEPLAY);
-
+                else if (FinishTitleScreen() == 2)
+                {
+                    PlayMusicStream(gameplayMusic);
+                    TransitionToScreen(GAMEPLAY);
+                }
             } break;
             case OPTIONS:
             {
                 UpdateOptionsScreen();
 
                 if (FinishOptionsScreen()) TransitionToScreen(TITLE);
-
             } break;
             case GAMEPLAY:
             {
                 UpdateGameplayScreen();
 
-                if (FinishGameplayScreen() == 1) TransitionToScreen(ENDING);
+                if (FinishGameplayScreen() == 1) TransitionToScreen(TITLE);
                 //else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
 
             } break;

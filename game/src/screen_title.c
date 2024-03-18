@@ -48,11 +48,8 @@ void InitTitleScreen(void)
 // Title Screen Update logic
 void UpdateTitleScreen(void)
 {
-    // TODO: Update TITLE screen variables here!
-
-	// Press enter or tap to change to GAMEPLAY screen
 	Vector2 position = GetMousePosition();
-	if (position.x > 20 && position.x < (MeasureText("start", 40) + 20)
+	if (position.x > 20 && position.x < (MeasureText("start", 40) + 40)
 		&& position.y < (GetScreenHeight() - 20) && position.y >(GetScreenHeight() - 60))
 	{
 		if (!IsSoundPlaying(fxCoin) && !hovered)
@@ -84,6 +81,8 @@ void DrawTitleScreen(void)
 
     DrawRectangleLines(20, GetScreenHeight() - 60, MeasureText("start", 40) + 20, 40, WHITE);
     DrawText("start", 30, GetScreenHeight() - 60, 40, WHITE);
+
+	DrawText("Raylib test-game", GetScreenWidth() - MeasureText("Raylib test-game ", 80), GetScreenHeight() / 2 - 40, 80, WHITE);
 }
 
 void UnloadTitleScreen(void)
