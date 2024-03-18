@@ -14,6 +14,8 @@
 
 #include "raylib.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
+#include "stdio.h"
+
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
@@ -27,6 +29,7 @@ GameScreen currentScreen = LOGO;
 Font font = { 0 };
 Music music = { 0 };
 Sound fxCoin = { 0 };
+Sound hover = { 0 };
 
 //----------------------------------------------------------------------------------
 // Local Variables Definition (local to this module)
@@ -61,14 +64,14 @@ int main(void)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "raylib game template");
 
-    InitAudioDevice();      // Initialize audio device
+    InitAudioDevice();
 
-    // Load global data (assets that must be available in all screens, i.e. font)
     font = LoadFont("resources/mecha.png");
     music = LoadMusicStream("resources/ambient.ogg");
     fxCoin = LoadSound("resources/coin.wav");
+    hover = LoadSound("resources/hover.wav");
 
-    SetMusicVolume(music, 1.0f);
+    SetMusicVolume(music, .4f);
     PlayMusicStream(music);
 
     // Setup and init first screen
@@ -117,9 +120,9 @@ int main(void)
 // Module specific Functions Definition
 //----------------------------------------------------------------------------------
 // Change to next screen, no transition
+
 static void ChangeToScreen(GameScreen screen)
 {
-    // Unload current screen
     switch (currentScreen)
     {
         case LOGO: UnloadLogoScreen(); break;
@@ -129,7 +132,6 @@ static void ChangeToScreen(GameScreen screen)
         default: break;
     }
 
-    // Init next screen
     switch (screen)
     {
         case LOGO: InitLogoScreen(); break;
@@ -165,7 +167,6 @@ static void UpdateTransition(void)
         {
             transAlpha = 1.0f;
 
-            // Unload current screen
             switch (transFromScreen)
             {
                 case LOGO: UnloadLogoScreen(); break;
@@ -176,7 +177,6 @@ static void UpdateTransition(void)
                 default: break;
             }
 
-            // Load next screen
             switch (transToScreen)
             {
                 case LOGO: InitLogoScreen(); break;
@@ -192,9 +192,9 @@ static void UpdateTransition(void)
             transFadeOut = true;
         }
     }
-    else  // Transition fade out logic
+    else
     {
-        transAlpha -= 0.02f;
+        transAlpha -= 0.04f;
 
         if (transAlpha < -0.01f)
         {
@@ -218,8 +218,8 @@ static void UpdateDrawFrame(void)
 {
     // Update
     //----------------------------------------------------------------------------------
-    UpdateMusicStream(music);       // NOTE: Music keeps playing between screens
-
+    UpdateMusicStream(music);
+    
     if (!onTransition)
     {
         switch(currentScreen)
@@ -264,15 +264,14 @@ static void UpdateDrawFrame(void)
             default: break;
         }
     }
-    else UpdateTransition();    // Update transition (fade-in, fade-out)
+    else UpdateTransition();
     //----------------------------------------------------------------------------------
 
     // Draw
     //----------------------------------------------------------------------------------
     BeginDrawing();
 
-        ClearBackground(RAYWHITE);
-
+        ClearBackground(BLACK);
         switch(currentScreen)
         {
             case LOGO: DrawLogoScreen(); break;
@@ -283,10 +282,7 @@ static void UpdateDrawFrame(void)
             default: break;
         }
 
-        // Draw full screen rectangle in front of everything
         if (onTransition) DrawTransition();
-
-        //DrawFPS(10, 10);
 
     EndDrawing();
     //----------------------------------------------------------------------------------
